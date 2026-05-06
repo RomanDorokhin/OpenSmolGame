@@ -5,6 +5,7 @@
 
 const API_BASE = 'https://smolgame.dorokhin731.workers.dev';
 const INIT_DATA_SS_KEY = 'smolgame:tgInitData:v1';
+const WEB_ID_LS_KEY = 'smolgame:webId:v1';
 
 export interface SmolGameUser {
   id: string;
@@ -21,6 +22,14 @@ export class SmolGameAPI {
    * Extract initData from URL or sessionStorage
    */
   static getInitData(): string {
+    // 0. Try official Telegram WebApp API
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.initData) {
+        return tg.initData;
+      }
+    } catch (e) {}
+
     // 1. Try URL fragment (hash) - common in Telegram
     const hash = window.location.hash || '';
     if (hash.includes('tgWebAppData=')) {
@@ -58,13 +67,29 @@ export class SmolGameAPI {
     } catch (e) { /* ignore */ }
   }
 
+  static getWebId(): string {
+    let id = localStorage.getItem(WEB_ID_LS_KEY);
+    if (!id) {
+      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(WEB_ID_LS_KEY, id);
+    }
+    return id;
+  }
+
   /**
    * Generic fetch with Telegram authentication
    */
   static async apiFetch(path: string, options: RequestInit = {}) {
     const initData = this.getInitData();
+    const webId = this.getWebId();
+    
+    // Add bypass params for non-Telegram browsers
+    const separator = path.includes('?') ? '&' : '?';
+    const finalPath = `${path}${separator}smol_bypass=1&web_id=${webId}`;
+
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
+      'x-web-id': webId,
     };
 
     if (initData) {
@@ -75,7 +100,7 @@ export class SmolGameAPI {
       headers['content-type'] = 'application/json';
     }
 
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetch(`${API_BASE}${finalPath}`, {
       ...options,
       headers,
     });
