@@ -5,7 +5,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Sparkles, ShieldCheck, Cpu, RotateCcw, Download } from "lucide-react";
+import { Menu, Sparkles, ShieldCheck, Cpu, Download } from "lucide-react";
 
 export default function Home() {
   const {
