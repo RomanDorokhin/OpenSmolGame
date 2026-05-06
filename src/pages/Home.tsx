@@ -139,19 +139,29 @@ export default function Home() {
                   </h2>
                   <p className="text-muted-foreground text-center max-w-md mb-6 leading-relaxed">
                     High-performance AI for game coding, protocol design, and architecture.
-                    <br />
-                    <span className="text-xs opacity-70 mt-2 block italic text-primary font-medium">Bring your own key, keep your own data.</span>
                   </p>
-                  
-                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-8 max-w-lg w-full text-center backdrop-blur-sm shadow-sm">
-                    <p className="text-sm text-foreground/90 leading-relaxed">
-                      Чтобы игра получилась действительно крутой, нам нужно пройти через <span className="text-primary font-bold">7 шагов проектирования</span>. 
-                      Пожалуйста, отвечай на мои вопросы — это поможет мне создать именно то, что ты хочешь. 
-                      <br /><br />
-                      <span className="text-xs opacity-70 italic">
-                        Если не знаешь, что ответить, просто пиши: <span className="font-semibold">"Я не знаю, реши сам"</span>, и я возьму это на себя! 🎮
-                      </span>
-                    </p>
+
+                  <div className="w-full max-w-lg bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-10 text-left">
+                    <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <Sparkles size={14} />
+                      Как создать крутую игру?
+                    </h3>
+                    <div className="space-y-3">
+                      {[
+                        "1. Опиши идею игры (жанр, сеттинг)",
+                        "2. Ответь на 7 уточняющих вопросов бота",
+                        "3. Обсуди механику «фишки» игры",
+                        "4. Утверди архитектуру данных",
+                        "5. Спроектируй протокол событий",
+                        "6. Попроси «протестировать» механику",
+                        "7. Нажми «Создать игру» для Unity"
+                      ].map((step, i) => (
+                        <div key={i} className="flex gap-3 text-sm text-foreground/70">
+                          <span className="font-mono text-primary/40 font-bold">{i+1}.</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                     {[
