@@ -1,46 +1,71 @@
 import { useState, useEffect } from 'react';
-import { GitHubOAuthClient, type GitHubUser } from '@/lib/githubOAuthClient';
+import { SmolGameAPI, type SmolGameUser } from '@/lib/smolgame-api';
 
 export function useAuth() {
-  const [user, setUser] = useState<GitHubUser | null>(GitHubOAuthClient.getUser());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(GitHubOAuthClient.isAuthenticated());
+  const [user, setUser] = useState<SmolGameUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Poll for changes in localStorage as a simple way to sync tabs/state
-    const interval = setInterval(() => {
-      const currentUser = GitHubOAuthClient.getUser();
-      const currentAuth = GitHubOAuthClient.isAuthenticated();
-      
-      if (currentAuth !== isAuthenticated) {
-        setIsAuthenticated(currentAuth);
-      }
-      
-      if (JSON.stringify(currentUser) !== JSON.stringify(user)) {
-        setUser(currentUser);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user, isAuthenticated]);
-
-  const login = () => {
-    const client = new GitHubOAuthClient({
-      clientId: import.meta.env.VITE_GITHUB_CLIENT_ID || '',
-      redirectUri: `${window.location.origin}/auth/github/callback`,
-    });
-    window.location.href = client.getAuthorizationUrl();
+  const checkAuth = async () => {
+    try {
+      const userData = await SmolGameAPI.getMe();
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.warn("User not authenticated via SmolGame Worker", error);
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    GitHubOAuthClient.logout();
-    setUser(null);
-    setIsAuthenticated(false);
+  useEffect(() => {
+    checkAuth();
+
+    // Check on focus or periodic
+    const handleFocus = () => checkAuth();
+    window.addEventListener('focus', handleFocus);
+    
+    // Poll every 30s to keep sync with backend
+    const interval = setInterval(checkAuth, 30000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const login = async () => {
+    try {
+      const { url } = await SmolGameAPI.githubOAuthStart();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Failed to start GitHub OAuth", error);
+      alert("Не удалось запустить вход через GitHub. Убедись, что ты открыл приложение из Telegram.");
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await SmolGameAPI.githubUnlink();
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error("Failed to unlink GitHub", error);
+    }
   };
 
   return {
     user,
     isAuthenticated,
+    isLoading,
     login,
     logout,
+    refresh: checkAuth,
+    isGithubConnected: user?.isGithubConnected || false,
+    githubUsername: user?.githubUsername || null,
   };
 }
