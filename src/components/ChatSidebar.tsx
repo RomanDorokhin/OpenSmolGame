@@ -30,6 +30,7 @@ interface ChatSidebarProps {
     model: string;
   };
   onUpdateSettings: (settings: any) => void;
+  onFactoryReset: () => void;
   usage: {
     requests: number;
     lastReset: number;
@@ -47,6 +48,7 @@ export function ChatSidebar({
   onClose,
   settings,
   onUpdateSettings,
+  onFactoryReset,
   usage,
 }: ChatSidebarProps) {
   const [confirmClear, setConfirmClear] = useState(false);
@@ -162,6 +164,21 @@ export function ChatSidebar({
                   onChange={(e) => onUpdateSettings({ model: e.target.value })}
                   className="bg-background"
                 />
+              </div>
+
+              <div className="pt-4 border-t border-sidebar-border mt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onFactoryReset}
+                  className="w-full justify-start gap-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                >
+                  <RotateCcw size={14} />
+                  Reset App Cache (Hard)
+                </Button>
+                <p className="text-[9px] text-sidebar-foreground/30 mt-2 px-1 leading-tight">
+                  This will delete ALL chats, history and API keys permanently.
+                </p>
               </div>
             </div>
           ) : (

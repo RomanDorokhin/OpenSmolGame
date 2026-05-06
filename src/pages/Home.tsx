@@ -5,23 +5,24 @@ import { ChatInput } from "@/components/ChatInput";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Sparkles, ShieldCheck, Cpu } from "lucide-react";
+import { Menu, Sparkles, ShieldCheck, Cpu, RotateCcw } from "lucide-react";
 
 export default function Home() {
   const {
     sessions,
-    activeSessionId,
     currentSession,
+    activeSessionId,
+    sendMessage,
+    switchSession,
+    createNewChat,
+    deleteSession,
+    clearAllSessions,
+    factoryReset,
+    retryLastMessage,
+    stopGeneration,
     isGenerating,
     settings,
     updateSettings,
-    sendMessage,
-    stopGeneration,
-    createNewChat,
-    switchSession,
-    deleteSession,
-    clearAllSessions,
-    retryLastMessage,
     usage,
     generationStep,
   } = useChat();
@@ -54,6 +55,7 @@ export default function Home() {
         onDeleteSession={deleteSession}
         onClearAll={clearAllSessions}
         onUpdateSettings={updateSettings}
+        onFactoryReset={factoryReset}
         settings={settings}
         usage={usage}
         isOpen={sidebarOpen}
