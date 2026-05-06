@@ -167,6 +167,23 @@ export function ChatSidebar({
                 />
               </div>
 
+              <div className="pt-2 border-t border-sidebar-border mt-4">
+                <label className="text-[11px] font-bold uppercase text-sidebar-foreground/50 ml-1">GitHub Token (PAT)</label>
+                <Input
+                  type="password"
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  value={localStorage.getItem('github_access_token') || ''}
+                  onChange={(e) => {
+                    localStorage.setItem('github_access_token', e.target.value);
+                    // Force re-render if needed, but localStorage is fine for now
+                  }}
+                  className="bg-background mt-1"
+                />
+                <p className="text-[9px] text-sidebar-foreground/40 px-1 mt-1">
+                  Required for one-click deployment to GitHub Pages.
+                </p>
+              </div>
+
               <div className="pt-4 border-t border-sidebar-border mt-4">
                 <Button
                   variant="ghost"

@@ -6,6 +6,8 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  pipelineResult?: any;
+  status?: string;
 }
 
 export interface ChatSession {

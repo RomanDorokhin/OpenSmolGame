@@ -7,6 +7,7 @@ import type {
 } from "@/types/chat";
 import type { APIProvider } from "@/lib/llm-api";
 import { generateStream } from "@/lib/llm-api";
+import { runGamePipeline } from "@/lib/gameGenerationPipelinePro";
 
 const STORAGE_KEY = "hybrid-chat-sessions-v2";
 const ACTIVE_SESSION_KEY = "hybrid-chat-active-session-v2";
@@ -320,6 +321,52 @@ export function useChat() {
               : s
           )
         );
+        
+        // --- PRODUCTION QUALITY PIPELINE INTEGRATION ---
+        if (fullContent.includes('```html')) {
+          const gameId = targetSessionId;
+          const htmlCodeMatch = fullContent.match(/```html\s*([\s\S]*?)```/);
+          const htmlCode = htmlCodeMatch ? htmlCodeMatch[1] : fullContent;
+
+          try {
+            setGenerationStep("Quality assurance in progress...");
+            const result = await runGamePipeline(gameId, htmlCode, {
+              onProgress: (msg) => {
+                setSessions((prev) =>
+                  prev.map((s) =>
+                    s.id === targetSessionId
+                      ? {
+                          ...s,
+                          messages: s.messages.map((m, idx) =>
+                            idx === s.messages.length - 1 ? { ...m, status: msg } : m
+                          ),
+                        }
+                      : s
+                  )
+                );
+              }
+            });
+
+            setSessions((prev) =>
+              prev.map((s) =>
+                s.id === targetSessionId
+                  ? {
+                      ...s,
+                      messages: s.messages.map((m, idx) =>
+                        idx === s.messages.length - 1 ? { ...m, pipelineResult: result, status: "Quality Check Complete" } : m
+                      ),
+                    }
+                  : s
+              )
+            );
+          } catch (pipelineError) {
+            console.error("Pipeline failed:", pipelineError);
+          } finally {
+            setGenerationStep("");
+          }
+        }
+        // ----------------------------------------------
+
       } catch (error: any) {
         if (error.name === 'AbortError') {
           // Preserve what we have
