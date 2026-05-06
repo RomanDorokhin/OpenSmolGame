@@ -25,7 +25,6 @@ export default function Home() {
     settings,
     updateSettings,
     usage,
-    usage,
     generationStep,
   } = useChat();
 
