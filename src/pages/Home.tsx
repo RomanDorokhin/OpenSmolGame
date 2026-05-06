@@ -5,7 +5,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Sparkles, ShieldCheck, Cpu, RotateCcw } from "lucide-react";
+import { Menu, Sparkles, ShieldCheck, Cpu, RotateCcw, Download } from "lucide-react";
 
 export default function Home() {
   const {
@@ -45,6 +45,26 @@ export default function Home() {
     }
   }, [currentSession.messages, isGenerating]);
 
+  const exportChat = () => {
+    if (!currentSession.messages.length) return;
+    
+    const content = currentSession.messages.map(m => {
+      const time = new Date(m.timestamp).toLocaleTimeString();
+      const role = m.role === 'user' ? 'ВЫ' : 'SMOL-AGENT';
+      return `[${time}] ${role}:\n${m.content}\n${'-'.repeat(40)}`;
+    }).join('\n\n');
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-${currentSession.title || 'export'}-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <ChatSidebar
@@ -75,17 +95,33 @@ export default function Home() {
           </Button>
           <div className="flex items-center gap-2 flex-1">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            <h1 className="font-semibold text-foreground">Smol-agent</h1>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+            <h1 className="font-semibold text-foreground truncate">{currentSession.title || 'Smol-agent'}</h1>
+            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
               <Cpu size={10} />
               API First
             </span>
           </div>
-          {!settings.apiKey && (
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <span className="text-[10px] text-yellow-600 font-medium italic">API Key Required in Settings</span>
-            </div>
-          )}
+
+          <div className="flex items-center gap-2">
+            {currentSession.messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportChat}
+                className="h-8 gap-2 text-xs text-muted-foreground hover:text-foreground"
+                title="Скачать диалог"
+              >
+                <Download size={14} />
+                <span className="hidden sm:inline">Скачать</span>
+              </Button>
+            )}
+
+            {!settings.apiKey && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <span className="text-[10px] text-yellow-600 font-medium italic">API Key Required in Settings</span>
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Messages */}
