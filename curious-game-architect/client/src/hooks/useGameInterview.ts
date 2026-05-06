@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
-import { trpc } from '@/lib/trpc';
 import {
   INTERVIEW_QUESTIONS,
   getNextQuestion,
   isGameSpecComplete,
   getProgressPercentage,
+  buildGamePrompt,
 } from '@shared/interviewFlow';
 import type { GameSpec, ChatMessage } from '@shared/types';
+import { callLLM, getLLMSettings } from '@/lib/llm-client';
 
 interface UseGameInterviewReturn {
   gameSpec: GameSpec;
@@ -81,8 +82,7 @@ export function useGameInterview(): UseGameInterviewReturn {
   const gameSpecRef = useRef<GameSpec>({});
   gameSpecRef.current = gameSpec;
 
-  const chatMutation = trpc.game.chat.useMutation();
-  const generateGameMutation = trpc.game.generateGame.useMutation();
+  // Replaced trpc mutations with direct LLM calls
 
   const progress = getProgressPercentage(gameSpec);
   const isComplete = isGameSpecComplete(gameSpec);
@@ -134,9 +134,8 @@ export function useGameInterview(): UseGameInterviewReturn {
         ];
 
         // Call the LLM for a natural response
-        const result = await chatMutation.mutateAsync({ messages: llmMessages });
-        const rawContent = result.content;
-        const aiContent = typeof rawContent === 'string' ? rawContent : 'Let me think about that...';
+        const settings = getLLMSettings();
+        const aiContent = await callLLM(llmMessages, settings);
 
         const aiMsg = makeMessage('assistant', aiContent);
         setMessages((prev) => [...prev, aiMsg]);
@@ -166,15 +165,57 @@ export function useGameInterview(): UseGameInterviewReturn {
         setIsLoading(false);
       }
     },
-    [messages, chatMutation]
+    [messages]
   );
 
   const generateGame = useCallback(async () => {
     setIsGenerating(true);
     try {
-      const result = await generateGameMutation.mutateAsync({
-        gameSpec: gameSpecRef.current as Record<string, string | undefined>,
-      });
+      const settings = getLLMSettings();
+      const prompt = buildGamePrompt(gameSpecRef.current as GameSpec);
+      
+      const rawHtml = await callLLM([
+        {
+          role: "system",
+          content: "You are an expert game developer. Generate complete, production-ready HTML5 games that work in iframes and on mobile devices. Return ONLY the raw HTML code — no markdown, no code blocks, no explanations.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ], settings);
+
+      let htmlCode = typeof rawHtml === 'string' ? rawHtml : '';
+
+      // Strip markdown code blocks if the model wrapped the output
+      htmlCode = htmlCode
+        .replace(/^```html\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+
+      // Post-process logic (same as original server logic)
+      if (
+        htmlCode.includes('function initGame') &&
+        htmlCode.includes('DOMContentLoaded') &&
+        !htmlCode.match(/DOMContentLoaded[\s\S]{0,200}initGame\s*\(/)  
+      ) {
+        htmlCode = htmlCode.replace(
+          /(document\.addEventListener\s*\(\s*['"]DOMContentLoaded['"]\s*,\s*(?:function\s*\(\)|\(\)\s*=>)\s*\{)/,
+          '$1\n            initGame();'
+        );
+      }
+      
+      if (
+        htmlCode.includes('function initGame') &&
+        !htmlCode.includes('DOMContentLoaded') &&
+        !htmlCode.match(/initGame\s*\(\s*\)\s*;/)
+      ) {
+        htmlCode = htmlCode.replace(
+          /(<\/script>)/,
+          '\n        document.addEventListener(\'DOMContentLoaded\', initGame);\n        $1'
+        );
+      }
 
       const successMsg = makeMessage(
         'assistant',
@@ -183,8 +224,8 @@ export function useGameInterview(): UseGameInterviewReturn {
       setMessages((prev) => [...prev, successMsg]);
 
       return {
-        htmlCode: result.htmlCode as string,
-        prompt: result.prompt as string,
+        htmlCode,
+        prompt,
       };
     } catch (error) {
       console.error('Game generation error:', error);
@@ -197,7 +238,7 @@ export function useGameInterview(): UseGameInterviewReturn {
     } finally {
       setIsGenerating(false);
     }
-  }, [generateGameMutation]);
+  }, []);
 
   return {
     gameSpec,
