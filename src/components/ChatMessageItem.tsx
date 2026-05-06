@@ -99,15 +99,23 @@ export function ChatMessageItem({ message, onRetry }: ChatMessageItemProps) {
               </Button>
             )}
             {htmlCode && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-7 px-2 text-xs bg-primary/20 text-primary hover:bg-primary/30 border-none ml-2"
-                onClick={() => setShowPreview(true)}
-              >
-                <Play size={12} fill="currentColor" />
-                <span className="ml-1 font-bold italic">PLAY PROTOTYPE</span>
-              </Button>
+              <div className="mt-4 p-4 border-2 border-primary/30 rounded-2xl bg-primary/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-black text-primary uppercase tracking-tighter italic">Protorype Ready!</h4>
+                    <p className="text-[10px] text-muted-foreground">Click to test mechanics in real-time</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="lg"
+                    className="h-12 px-8 bg-primary text-primary-foreground hover:bg-primary/90 border-none shadow-[0_0_20px_rgba(var(--primary),0.3)] animate-pulse hover:animate-none group"
+                    onClick={() => setShowPreview(true)}
+                  >
+                    <Play size={18} fill="currentColor" className="mr-2 group-hover:scale-110 transition-transform" />
+                    <span className="font-black italic text-lg">PLAY NOW</span>
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         )}
