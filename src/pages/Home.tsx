@@ -72,7 +72,7 @@ export default function Home() {
           </Button>
           <div className="flex items-center gap-2 flex-1">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            <h1 className="font-semibold text-foreground">HybridAI 2.0</h1>
+            <h1 className="font-semibold text-foreground">Smol-agent</h1>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
               <Cpu size={10} />
               API First
@@ -94,8 +94,9 @@ export default function Home() {
                   <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-8 shadow-inner">
                     <Sparkles className="w-10 h-10 text-primary" />
                   </div>
+                  <span className="text-xs font-bold text-foreground">Smol-agent</span>
                   <h2 className="text-3xl font-black text-foreground mb-3 tracking-tight">
-                    Senior Game Architect
+                    Smol-agent
                   </h2>
                   <p className="text-muted-foreground text-center max-w-md mb-6 leading-relaxed">
                     High-performance AI for game coding, protocol design, and architecture.

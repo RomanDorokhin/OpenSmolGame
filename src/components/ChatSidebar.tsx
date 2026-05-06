@@ -84,8 +84,8 @@ export function ChatSidebar({
               <ShieldCheck className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-bold text-sm text-sidebar-foreground leading-none">HybridAI 2.0</h2>
-              <p className="text-[10px] text-sidebar-foreground/50 mt-1 uppercase tracking-wider font-semibold">API First</p>
+              <h2 className="font-bold text-sm text-sidebar-foreground leading-none">Smol-agent</h2>
+              <p className="text-[10px] text-sidebar-foreground/50 mt-1 uppercase tracking-wider font-semibold">AI First</p>
             </div>
           </div>
           <Button
