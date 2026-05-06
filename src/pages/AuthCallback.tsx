@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { GitHubOAuthClient } from '@/lib/githubOAuthClient';
+
 
 export function AuthCallback() {
   const [, setLocation] = useLocation();
