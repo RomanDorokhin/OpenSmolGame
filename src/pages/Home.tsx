@@ -54,6 +54,7 @@ export default function Home() {
         onDeleteSession={deleteSession}
         onClearAll={clearAllSessions}
         onUpdateSettings={updateSettings}
+        settings={settings}
         usage={usage}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
