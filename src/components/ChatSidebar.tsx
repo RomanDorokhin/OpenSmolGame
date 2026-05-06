@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ExternalLink,
   ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 import type { ChatSession } from "@/types/chat";
 import type { APIProvider } from "@/lib/llm-api";
