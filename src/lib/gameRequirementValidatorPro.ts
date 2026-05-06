@@ -17,6 +17,16 @@ export interface RequirementCheck {
   fixedCode?: string;
 }
 
+export interface GameSpec {
+  genre: string;
+  mechanics: string;
+  visuals: string;
+  audience: string;
+  story: string;
+  progression: string;
+  special_features: string;
+}
+
 export interface ValidationReport {
   gameId: string;
   timestamp: Date;
@@ -26,6 +36,7 @@ export interface ValidationReport {
   warnings: number;
   score: number; // 0-100
   isPublishable: boolean;
+  isValid: boolean; // Added for compatibility
   criticalFailures: RequirementCheck[];
   allChecks: RequirementCheck[];
   summary: string;
@@ -163,7 +174,7 @@ export class GameRequirementValidatorPro {
       this.htmlCode.includes('pointerdown') ||
       this.htmlCode.includes('pointerup');
 
-    const hasClickOnly = this.htmlCode.includes('onclick') &&
+    this.htmlCode.includes('onclick') &&
       !this.htmlCode.includes('touchstart');
 
     this.addCheck({
@@ -274,7 +285,7 @@ export class GameRequirementValidatorPro {
         this.htmlCode.includes('200)') ||
         this.htmlCode.includes('300)'));
 
-    const hasAnimation = this.htmlCode.includes('@keyframes') ||
+    this.htmlCode.includes('@keyframes') ||
       this.htmlCode.includes('animation:');
 
     this.addCheck({
@@ -516,7 +527,7 @@ export class GameRequirementValidatorPro {
     const hasTapCheck = this.htmlCode.includes('touchstart') ||
       this.htmlCode.includes('pointerdown');
 
-    const hasUserGestureCheck = this.htmlCode.includes('userActivation') ||
+    this.htmlCode.includes('userActivation') ||
       this.htmlCode.includes('first') ||
       this.htmlCode.includes('initialized');
 
@@ -893,6 +904,7 @@ ${criticalFailures.length > 0
       warnings,
       score,
       isPublishable,
+      isValid: failed === 0,
       criticalFailures,
       allChecks: this.checks,
       summary,

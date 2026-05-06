@@ -29,7 +29,6 @@ export interface GitHubAuthToken {
 export class GitHubOAuthClient {
   private config: GitHubOAuthConfig;
   private authorizationUrl = 'https://github.com/login/oauth/authorize';
-  private tokenUrl = 'https://github.com/login/oauth/access_token';
   private apiBaseUrl = 'https://api.github.com';
 
   constructor(config: GitHubOAuthConfig) {
@@ -56,7 +55,7 @@ export class GitHubOAuthClient {
   /**
    * Handle OAuth callback and get token
    */
-  async handleCallback(code: string): Promise<GitHubAuthToken> {
+  async handleCallback(_code: string): Promise<GitHubAuthToken> {
     // This needs to be handled by backend to avoid CORS issues
     // Frontend should pass code to backend which exchanges it for token
     throw new Error(

@@ -3,8 +3,7 @@
  * Handles versioning, history, and rollback
  */
 
-import type { GameSpec } from '@shared/types';
-import { ValidationReport } from './gameRequirementValidator';
+import type { GameSpec, ValidationReport } from './gameRequirementValidatorPro';
 
 export interface GameVersion {
   id: string;

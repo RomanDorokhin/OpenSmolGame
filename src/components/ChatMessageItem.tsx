@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, User, Bot, RotateCcw, Play, X, Github, Rocket, Loader2, Globe } from "lucide-react";
 import type { ChatMessage } from "@/types/chat";
-import { GitHubGameDeployerOAuth, GameMetadata } from "@/lib/githubGameDeployerOAuth";
-import { GitHubOAuthClient } from "@/lib/githubOAuthClient";
+import { GitHubGameDeployerOAuth, type GameMetadata } from "@/lib/githubGameDeployerOAuth";
+
 
 interface ChatMessageItemProps {
   message: ChatMessage;

@@ -392,8 +392,6 @@ export class GameTestingFrameworkPro {
     try {
       if (!this.iframe) throw new Error('iframe not created');
 
-      const window = this.iframe.contentWindow as any;
-
       // Check memory if available
       if ((performance as any).memory) {
         const memory = (performance as any).memory;
@@ -479,8 +477,6 @@ export class GameTestingFrameworkPro {
   private async testPortraitOrientation(): Promise<void> {
     try {
       if (!this.iframe) throw new Error('iframe not created');
-
-      const window = this.iframe.contentWindow as any;
 
       // Check viewport meta tag
       const doc = this.iframe.contentDocument;

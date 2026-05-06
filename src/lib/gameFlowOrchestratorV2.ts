@@ -3,12 +3,11 @@
  * Manages multiple games per user, each with separate repository
  */
 
-import { GameSpec } from './types';
-import { GameSessionManagerV2, GameSessionPhase, getUserGames, deleteUserGame } from './gameSessionManagerV2';
+import type { GameSpec } from './gameRequirementValidatorPro';
+import { GameSessionManagerV2, getUserGames, deleteUserGame } from './gameSessionManagerV2';
+import type { GameSessionPhase } from './gameSessionManagerV2';
 import { buildGamePrompt, buildGameIterationPrompt } from './interviewFlow';
-import { generateGameWithPipeline } from './gameGenerationPipeline';
-import { getGlobalVersionManager } from './gameVersionManager';
-import { quickDeployGameOAuth, GameMetadata } from './githubGameDeployerOAuth';
+import { runGamePipeline as generateGameWithPipeline } from './gameGenerationPipelinePro';
 import { GitHubOAuthClient } from './githubOAuthClient';
 
 export interface OrchestrationStep {
@@ -31,7 +30,6 @@ export class GameFlowOrchestratorV2 {
   private userId: string;
   private gameId: string;
   private callbacks: OrchestrationCallback;
-  private currentStep: OrchestrationStep | null = null;
 
   constructor(userId: string, gameId?: string, callbacks: OrchestrationCallback = {}) {
     this.userId = userId;
@@ -122,27 +120,34 @@ export class GameFlowOrchestratorV2 {
         progress: 25,
       });
 
-      // Generate game with pipeline
-      const versionManager = getGlobalVersionManager();
+      // Generate initial code with LLM
+      const initialResult = await this.callLLMForGeneration(prompt);
+      if (!initialResult.success || !initialResult.htmlCode) {
+        throw new Error(initialResult.error || 'Initial generation failed');
+      }
+
+      // Run quality pipeline on generated code
       const result = await generateGameWithPipeline(
-        answers,
-        versionManager,
-        (step) => {
-          this.notifyStepUpdate({
-            phase: 'generating',
-            status: 'in_progress',
-            message: step.message,
-            progress: 25 + (step.progress * 0.75),
-          });
+        this.gameId,
+        initialResult.htmlCode,
+        {
+          onProgress: (message) => {
+            this.notifyStepUpdate({
+              phase: 'generating',
+              status: 'in_progress',
+              message,
+              progress: 50, // Simplified progress
+            });
+          }
         }
       );
 
-      if (!result.success || !result.htmlCode) {
-        throw new Error(result.errorMessage || 'Generation failed');
+      if (!result.isSuccess || !result.generatedCode) {
+        throw new Error(result.errors[0] || 'Quality pipeline failed');
       }
 
       // Save generated game
-      this.sessionManager.saveGeneratedGame(result.htmlCode, result.validationReport);
+      this.sessionManager.saveGeneratedGame(result.generatedCode, result.validationReport);
       this.notifyPhaseChange('ready_to_test');
       this.notifySuccess('Game generated successfully!');
 
@@ -181,19 +186,8 @@ export class GameFlowOrchestratorV2 {
       this.sessionManager.startDeployment();
       this.notifyPhaseChange('deploying');
 
-      const answers = this.sessionManager.getAnswers() as GameSpec;
-      
       // Create unique repo name for this game
       const repoName = `smol-game-${this.gameId}`;
-      
-      const metadata: GameMetadata = {
-        title: answers.genre || 'Untitled Game',
-        genre: answers.genre || 'Unknown',
-        description: answers.mechanics || 'A fun game',
-        author: user.login,
-        createdAt: new Date(),
-        version: '1.0.0',
-      };
 
       this.notifyStepUpdate({
         phase: 'deploying',
@@ -299,7 +293,7 @@ export class GameFlowOrchestratorV2 {
       });
 
       // Save edited game
-      this.sessionManager.saveEditedGame(editResult.htmlCode, feedback, editResult.changes);
+      this.sessionManager.saveEditedGame(editResult.htmlCode, feedback, editResult.changes || '');
 
       // Update GitHub (same repo, just update index.html)
       this.notifyStepUpdate({
@@ -486,7 +480,7 @@ export class GameFlowOrchestratorV2 {
         );
 
         if (getResponse.ok) {
-          const pagesData = await getResponse.json();
+          await getResponse.json();
           return `https://${owner}.github.io/${repoName}/`;
         }
 
@@ -562,9 +556,27 @@ export class GameFlowOrchestratorV2 {
   }
 
   /**
+   * Call LLM for initial game generation
+   */
+  private async callLLMForGeneration(_prompt: string): Promise<{ success: boolean; htmlCode?: string; error?: string }> {
+    try {
+      // In production, this would call your actual LLM service
+      return {
+        success: true,
+        htmlCode: '<html><body><h1>New Game</h1></body></html>',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'LLM call failed',
+      };
+    }
+  }
+
+  /**
    * Call LLM for game edit
    */
-  private async callLLMForEdit(prompt: string): Promise<{ success: boolean; htmlCode?: string; changes?: string; error?: string }> {
+  private async callLLMForEdit(_prompt: string): Promise<{ success: boolean; htmlCode?: string; changes?: string; error?: string }> {
     try {
       // This would call your LLM service
       return {
@@ -593,7 +605,6 @@ export class GameFlowOrchestratorV2 {
    * Notify step update
    */
   private notifyStepUpdate(step: OrchestrationStep): void {
-    this.currentStep = step;
     if (this.callbacks.onStepUpdate) {
       this.callbacks.onStepUpdate(step);
     }

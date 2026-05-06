@@ -4,7 +4,8 @@
  * Version: 2.0 - Production Ready
  */
 
-import { GameRequirementValidatorPro, ValidationReport } from './gameRequirementValidatorPro';
+import { GameRequirementValidatorPro } from './gameRequirementValidatorPro';
+import type { ValidationReport } from './gameRequirementValidatorPro';
 
 export interface FixAttempt {
   attemptNumber: number;
@@ -226,7 +227,7 @@ export class GameAutoFixerPro {
    */
   private fixFontSize(): void {
     // Replace small fonts with minimum 16px
-    this.currentCode = this.currentCode.replace(/font-size:\s*(\d+)px/g, (match, size) => {
+    this.currentCode = this.currentCode.replace(/font-size:\s*(\d+)px/g, (_, size) => {
       const sizeNum = parseInt(size);
       return `font-size:${Math.max(sizeNum, 16)}px`;
     });

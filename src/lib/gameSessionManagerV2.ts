@@ -4,7 +4,7 @@
  * Multiple games per user, each with separate session
  */
 
-import { GameSpec } from './types';
+import type { GameSpec } from './gameRequirementValidatorPro';
 
 export type GameSessionPhase = 
   | 'interview'
@@ -311,7 +311,7 @@ export class GameSessionManagerV2 {
   /**
    * Start editing
    */
-  startEditing(feedback: string): void {
+  startEditing(_feedback: string): void {
     this.session.phase = 'editing';
     this.save();
   }
@@ -456,7 +456,7 @@ export class GameSessionManagerV2 {
    * Update games list
    */
   private updateGamesList(): void {
-    const gamesList = this.getGamesList(this.session.userId);
+    const gamesList = GameSessionManagerV2.getGamesList(this.session.userId);
     
     const existingIndex = gamesList.games.findIndex(g => g.gameId === this.session.gameId);
     
@@ -491,7 +491,7 @@ export class GameSessionManagerV2 {
    * Remove from games list
    */
   private removeFromGamesList(): void {
-    const gamesList = this.getGamesList(this.session.userId);
+    const gamesList = GameSessionManagerV2.getGamesList(this.session.userId);
     gamesList.games = gamesList.games.filter(g => g.gameId !== this.session.gameId);
     localStorage.setItem(this.gamesListKey, JSON.stringify(gamesList));
   }

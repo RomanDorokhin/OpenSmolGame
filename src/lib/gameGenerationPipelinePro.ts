@@ -4,9 +4,12 @@
  * Version: 2.0 - Production Ready
  */
 
-import { GameRequirementValidatorPro, ValidationReport } from './gameRequirementValidatorPro';
-import { GameTestingFrameworkPro, GameTestReport } from './gameTestingFrameworkPro';
-import { GameAutoFixerPro, AutoFixResult } from './gameAutoFixerPro';
+import { GameRequirementValidatorPro } from './gameRequirementValidatorPro';
+import type { ValidationReport } from './gameRequirementValidatorPro';
+import { GameTestingFrameworkPro } from './gameTestingFrameworkPro';
+import type { GameTestReport } from './gameTestingFrameworkPro';
+import { GameAutoFixerPro } from './gameAutoFixerPro';
+import type { AutoFixResult } from './gameAutoFixerPro';
 
 export type PipelinePhase =
   | 'generation'
