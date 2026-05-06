@@ -78,76 +78,50 @@ export function getNextQuestion(gameSpec: GameSpec): InterviewQuestion | null {
 }
 
 /**
- * Build the final prompt for OpenSmolGame with all technical requirements
+ * Build the final prompt for game generation with all technical requirements.
+ * Optimized to be concise while preserving all mandatory constraints.
  */
 export function buildGamePrompt(gameSpec: GameSpec): string {
-  const technicalRequirements = `
-TECHNICAL REQUIREMENTS (MANDATORY - NO EXCEPTIONS):
-- Works without backend — only static HTML/CSS/JS
-- Runs in iframe without errors
-- Touch controls REQUIRED (no mouse-only)
-- Portrait orientation ONLY (vertical screen)
-- NO alert(), confirm(), prompt() dialogs
-- NO native phone keyboard inside game
-- Demo Mode REQUIRED — real gameplay, looped, any game moment
-- Loading screen if load time > 2 seconds
-- Game Over screen with result and "Play Again" button
-- Pause control — user toggles it, auto-pause on app minimize
-- First 3 seconds = ACTION — something happens immediately
-- Difficulty balance — not too easy, not impossible
-- Progression — each level harder
-- Playable from start to end without bugs
-- Clear Game Over reason — user understands why they lost
-- Built-in tutorial if mechanics are non-standard
-- Protected from obvious bugs and edge cases
-- Tap zones & buttons minimum 44x44px
-- Font minimum 16px, readable in sunlight
-- Text embedded in game only — no system text
-- Sound REQUIRED but only after first user tap
-- Demo Mode plays WITHOUT sound (expected behavior)
-- Performance on budget Android phones
-- High scores saved via localStorage
-- Progress saved via localStorage for long games
-- User warned that progress is device-bound
-- Replayable — randomization, records, different paths
-- Own visual style and atmosphere
-- Game title visible inside game
-- Color contrast — elements visible in sunlight
-- Hosted on GitHub Pages — any file structure
-- Russian or visual-only language, no language mixing
-- NO content 18+, violence, politics (this is Telegram — children present)
-- Repository size reasonable for mobile internet
-- Cache-busting for updates — users get new version
-- Static preview image for search/catalog (Demo doesn't play there)
-- Multi-touch handling — works with multiple fingers
-- No epilepsy triggers — no flashing > 3 times/second
-
-GAME SPECIFICATION:
-Genre: ${gameSpec.genre || 'Not specified'}
+  const spec = `Genre: ${gameSpec.genre || 'Not specified'}
 Mechanics: ${gameSpec.mechanics || 'Not specified'}
 Visual Style: ${gameSpec.visuals || 'Not specified'}
 Target Audience: ${gameSpec.audience || 'Not specified'}
 Story/Theme: ${gameSpec.story || 'Not specified'}
 Progression: ${gameSpec.progression || 'Not specified'}
-Special Features: ${gameSpec.special_features || 'Not specified'}
+Special Features: ${gameSpec.special_features || 'Not specified'}`;
 
-TASK:
-Generate a complete, production-ready HTML5 game that:
-1. Meets ALL technical requirements above
-2. Implements the game design specified above
-3. Is a single HTML file with embedded CSS and JavaScript
-4. Can be saved as .html and run directly in a browser
-5. Works perfectly in an iframe sandbox
-6. Has a Demo Mode that loops automatically
-7. Includes proper Game Over screen with score/result
-8. Has pause functionality
-9. Uses localStorage for high scores
-10. Has touch controls optimized for mobile
-11. Loads within 2 seconds
-12. Has clear visual style and is fun to play
+  return `Create a complete, production-ready HTML5 game as a SINGLE self-contained HTML file.
 
-Return ONLY the complete HTML code. No explanations, no markdown, no code blocks — just raw HTML.
-`;
+GAME DESIGN:
+${spec}
 
-  return technicalRequirements;
+MANDATORY TECHNICAL REQUIREMENTS:
+• Works without backend — only static HTML/CSS/JS
+• Runs in iframe sandbox (allow-scripts allow-same-origin)
+• Touch controls required (min 44x44px tap targets); no mouse-only
+• Portrait orientation (vertical screen)
+• No alert/confirm/prompt dialogs; no native keyboard inside game
+• Auto-start: call initGame() inside DOMContentLoaded — game must start automatically without user interaction
+• Demo Mode: real looped gameplay starts automatically (no sound in demo)
+• Loading screen if startup > 2 seconds
+• Game Over screen with score + "Play Again" button
+• Pause button (auto-pause on page hide)
+• First 3 seconds: immediate action — something happens right away
+• Balanced difficulty — not trivial, not impossible
+• Progressive difficulty — each level/wave harder than the last
+• Clear Game Over reason shown to player
+• Built-in tutorial for non-obvious mechanics
+• High scores + progress saved via localStorage (warn user it's device-bound)
+• Sound only after first user tap/click
+• Performance on budget Android phones (no heavy WebGL, no large assets)
+• Game title visible inside the game
+• Minimum 16px font; high contrast for sunlight readability
+• No 18+ content, violence, or politics
+• No flashing faster than 3 times/second (epilepsy protection)
+• Multi-touch support
+• Replayable: randomization, records, or different paths
+• Russian language OR visual-only (no mixed languages)
+• Cache-busting: add ?v=1 or timestamp to any asset URLs
+
+OUTPUT: Return ONLY the raw HTML. No markdown, no code fences, no explanations.`;
 }

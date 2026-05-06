@@ -1,155 +1,186 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { trpc } from '@/lib/trpc';
-import { INTERVIEW_QUESTIONS, getNextQuestion, isGameSpecComplete } from '@shared/interviewFlow';
+import {
+  INTERVIEW_QUESTIONS,
+  getNextQuestion,
+  isGameSpecComplete,
+  getProgressPercentage,
+} from '@shared/interviewFlow';
 import type { GameSpec, ChatMessage } from '@shared/types';
 
 interface UseGameInterviewReturn {
   gameSpec: GameSpec;
   messages: ChatMessage[];
+  /** True while the AI is generating a chat reply */
   isLoading: boolean;
+  /** True while the game HTML is being generated */
+  isGenerating: boolean;
   progress: number;
   isComplete: boolean;
   sendMessage: (content: string) => Promise<void>;
   generateGame: () => Promise<{ htmlCode: string; prompt: string }>;
+  resetInterview: () => void;
+}
+
+const SYSTEM_PROMPT = `You are a curious and enthusiastic game designer AI named "Game Architect". Your job is to help the user design their dream game by asking questions one at a time in a friendly, engaging conversation.
+
+Guidelines:
+- Ask ONE question at a time
+- Be encouraging, creative, and enthusiastic
+- Acknowledge the user's answer briefly (1 sentence) before asking the next question
+- Keep responses concise (2-4 sentences max)
+- Use emojis occasionally for engagement 🎮
+- When all 7 topics are covered, tell the user you're ready to generate their game
+- Do NOT ask for information already collected
+
+Topics to cover in order:
+1. Genre (e.g., puzzle, action, adventure, strategy, casual, racing)
+2. Core mechanics (what the player does: tap, swipe, click, etc.)
+3. Visual style (pixel art, minimalist, colorful, dark, retro, 3D-like)
+4. Target audience (kids, casual players, hardcore gamers, all ages)
+5. Story/Theme (save the princess, escape the maze, collect coins, survive waves)
+6. Difficulty progression (increasing speed, more enemies, harder patterns, time limits)
+7. Special features (power-ups, combos, leaderboards, sound effects, particle effects)`;
+
+function buildSystemMessage(gameSpec: GameSpec): string {
+  const collected = Object.entries(gameSpec)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join('\n');
+
+  const status = INTERVIEW_QUESTIONS.map((q) => {
+    const filled = !!gameSpec[q.field];
+    return `${filled ? '✓' : '○'} ${q.field}${filled ? `: ${gameSpec[q.field]}` : ''}`;
+  }).join('\n');
+
+  return `${SYSTEM_PROMPT}
+
+Current game spec collected:
+${collected || '(nothing yet)'}
+
+Status:
+${status}`;
+}
+
+function makeMessage(role: ChatMessage['role'], content: string): ChatMessage {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    role,
+    content,
+    timestamp: new Date(),
+  };
 }
 
 export function useGameInterview(): UseGameInterviewReturn {
   const [gameSpec, setGameSpec] = useState<GameSpec>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Keep a ref to the latest gameSpec for use inside callbacks without stale closure
+  const gameSpecRef = useRef<GameSpec>({});
+  gameSpecRef.current = gameSpec;
+
+  const chatMutation = trpc.game.chat.useMutation();
   const generateGameMutation = trpc.game.generateGame.useMutation();
 
-  const progress = Math.round(
-    (Object.keys(gameSpec).filter((k) => gameSpec[k as keyof GameSpec]).length /
-      INTERVIEW_QUESTIONS.length) *
-      100
-  );
-
+  const progress = getProgressPercentage(gameSpec);
   const isComplete = isGameSpecComplete(gameSpec);
+
+  const resetInterview = useCallback(() => {
+    setGameSpec({});
+    setMessages([]);
+    setIsLoading(false);
+    setIsGenerating(false);
+  }, []);
 
   const sendMessage = useCallback(
     async (userContent: string) => {
-      // Allow empty content for initial greeting
+      // Allow empty string only for the initial greeting trigger
       if (!userContent.trim() && messages.length > 0) return;
 
-      // Add user message (only if not initial greeting)
-      if (userContent.trim()) {
-        const userMessage: ChatMessage = {
-          id: Date.now().toString(),
-          role: 'user',
-          content: userContent,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, userMessage]);
+      const isInitialGreeting = !userContent.trim() && messages.length === 0;
+
+      // Add user message to the chat (skip for initial greeting)
+      let updatedMessages = [...messages];
+      if (!isInitialGreeting) {
+        const userMsg = makeMessage('user', userContent);
+        updatedMessages = [...updatedMessages, userMsg];
+        setMessages(updatedMessages);
       }
+
       setIsLoading(true);
 
       try {
-        // Update GameSpec with the user's answer
-        const nextQuestion = getNextQuestion(gameSpec);
-        let updatedSpec = { ...gameSpec };
-
-        if (nextQuestion) {
-          updatedSpec = {
-            ...updatedSpec,
-            [nextQuestion.field]: userContent,
-          };
-          setGameSpec(updatedSpec);
-        }
-
-        // Build conversation history for AI
-        const conversationHistory = messages
-          .map((msg) => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-          }))
-          .concat([{ role: 'user' as const, content: userContent }]);
-
-        // Call LLM to get AI response
-        const systemPrompt = `You are a curious and enthusiastic game designer AI. Your job is to help the user design a game by asking questions one at a time.
-
-Current game specification collected:
-${Object.entries(updatedSpec)
-  .filter(([, v]) => v)
-  .map(([k, v]) => `- ${k}: ${v}`)
-  .join('\n')}
-
-Interview topics to cover (in order):
-1. Genre - ${updatedSpec.genre ? '✓' : '○'}
-2. Mechanics - ${updatedSpec.mechanics ? '✓' : '○'}
-3. Visual Style - ${updatedSpec.visuals ? '✓' : '○'}
-4. Target Audience - ${updatedSpec.audience ? '✓' : '○'}
-5. Story/Theme - ${updatedSpec.story ? '✓' : '○'}
-6. Progression - ${updatedSpec.progression ? '✓' : '○'}
-7. Special Features - ${updatedSpec.special_features ? '✓' : '○'}
-
-Guidelines:
-- Ask ONE question at a time
-- Listen to their answer and ask follow-up clarifying questions if needed (max 2 follow-ups)
-- Be encouraging and creative
-- Once you have enough detail on a topic, move to the next question
-- When all topics are covered, tell them you're ready to generate their game
-- Keep responses concise (2-3 sentences max)
-- Use emojis occasionally for engagement`;
-
-        // Generate AI response
-        let aiContent = '';
-
-        if (messages.length === 0) {
-          // Initial greeting
-          aiContent =
-            "Hello! I'm your game design assistant. Let's create an amazing game together! 🎮\n\n**What genre is your game?** (e.g., puzzle, action, adventure, strategy, casual, racing, etc.)";
-        } else if (isComplete) {
-          aiContent =
-            '🎮 Perfect! I have all the details I need to create your game. Let me generate it now... This may take a moment! ⏳';
-        } else {
-          const nextQ = getNextQuestion(updatedSpec);
-          if (nextQ) {
-            aiContent = `Great! That sounds awesome! 🎯\n\n**${nextQ.question}**`;
-          } else {
-            aiContent = 'I think I have enough information. Let me generate your game!';
+        // Update GameSpec with the user's answer to the current question
+        let updatedSpec = { ...gameSpecRef.current };
+        if (!isInitialGreeting) {
+          const nextQuestion = getNextQuestion(updatedSpec);
+          if (nextQuestion) {
+            updatedSpec = { ...updatedSpec, [nextQuestion.field]: userContent };
+            setGameSpec(updatedSpec);
           }
         }
 
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: aiContent,
-          timestamp: new Date(),
-        };
+        // Build the messages array for the LLM
+        const llmMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+          { role: 'system', content: buildSystemMessage(updatedSpec) },
+          // Include conversation history
+          ...updatedMessages
+            .map((m) => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })),
+        ];
 
-        setMessages((prev) => [...prev, aiMessage]);
+        // Call the LLM for a natural response
+        const result = await chatMutation.mutateAsync({ messages: llmMessages });
+        const rawContent = result.content;
+        const aiContent = typeof rawContent === 'string' ? rawContent : 'Let me think about that...';
+
+        const aiMsg = makeMessage('assistant', aiContent);
+        setMessages((prev) => [...prev, aiMsg]);
       } catch (error) {
-        console.error('Error in interview:', error);
-        const errorMessage: ChatMessage = {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content: 'Sorry, something went wrong. Please try again.',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        console.error('Error in interview chat:', error);
+
+        // Graceful fallback: use hardcoded question if LLM fails
+        const updatedSpec = gameSpecRef.current;
+        let fallbackContent: string;
+
+        if (messages.length === 0) {
+          fallbackContent =
+            "Hello! I'm your Game Architect 🎮 Let's design an amazing game together!\n\n**What genre is your game?** (e.g., puzzle, action, adventure, strategy, casual, racing)";
+        } else if (isGameSpecComplete(updatedSpec)) {
+          fallbackContent =
+            '🎮 Perfect! I have all the details I need. Let me generate your game now... This may take a moment! ⏳';
+        } else {
+          const nextQ = getNextQuestion(updatedSpec);
+          fallbackContent = nextQ
+            ? `Got it! 👍\n\n**${nextQ.question}**`
+            : "I think I have enough information. Let me generate your game!";
+        }
+
+        const fallbackMsg = makeMessage('assistant', fallbackContent);
+        setMessages((prev) => [...prev, fallbackMsg]);
       } finally {
         setIsLoading(false);
       }
     },
-    [gameSpec, messages]
+    [messages, chatMutation]
   );
 
   const generateGame = useCallback(async () => {
-    setIsLoading(true);
+    setIsGenerating(true);
     try {
       const result = await generateGameMutation.mutateAsync({
-        gameSpec: gameSpec as Record<string, string | undefined>,
+        gameSpec: gameSpecRef.current as Record<string, string | undefined>,
       });
 
-      const successMessage: ChatMessage = {
-        id: (Date.now() + 3).toString(),
-        role: 'assistant',
-        content:
-          '🎮 **Your game is ready!** Check the preview below. You can play it right here or download it as a standalone HTML file.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, successMessage]);
+      const successMsg = makeMessage(
+        'assistant',
+        '🎮 **Your game is ready!** Check the preview on the right. You can play it directly or download it as a standalone HTML file. Click **"Start Over"** to design a new game!'
+      );
+      setMessages((prev) => [...prev, successMsg]);
 
       return {
         htmlCode: result.htmlCode as string,
@@ -157,26 +188,26 @@ Guidelines:
       };
     } catch (error) {
       console.error('Game generation error:', error);
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 4).toString(),
-        role: 'assistant',
-        content: 'Failed to generate the game. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      const errorMsg = makeMessage(
+        'assistant',
+        '❌ Failed to generate the game. Please try again by clicking the **"Generate Game"** button, or start over with a new design.'
+      );
+      setMessages((prev) => [...prev, errorMsg]);
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
-  }, [gameSpec, generateGameMutation]);
+  }, [generateGameMutation]);
 
   return {
     gameSpec,
     messages,
     isLoading,
+    isGenerating,
     progress,
     isComplete,
     sendMessage,
     generateGame,
+    resetInterview,
   };
 }
