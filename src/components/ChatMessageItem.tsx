@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, User, Bot, RotateCcw, Play, X, Github, Rocket, Loader2, Globe } from "lucide-react";
 import type { ChatMessage } from "@/types/chat";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { GitHubOAuthClient } from "@/lib/githubOAuthClient";
 import { GitHubGameDeployerOAuth, type GameMetadata } from "@/lib/githubGameDeployerOAuth";
 
 
@@ -20,6 +22,7 @@ export function ChatMessageItem({ message, onRetry }: ChatMessageItemProps) {
   const [deployResult, setDeployResult] = useState<{ gameUrl: string; repoUrl: string } | null>(null);
   const isUser = message.role === "user";
   const isStreaming = message.isStreaming;
+  const { user, isAuthenticated, login } = useAuth();
 
   const htmlCode = message.content.match(/```html\s*([\s\S]*?)```/)?.[1] || 
                    (message.content.includes('<html>') ? message.content : null);
@@ -35,15 +38,15 @@ export function ChatMessageItem({ message, onRetry }: ChatMessageItemProps) {
   };
 
   const handleDeploy = async () => {
-    const token = localStorage.getItem('github_access_token');
-    const githubUserRaw = localStorage.getItem('github_user');
-    const githubUser = githubUserRaw ? JSON.parse(githubUserRaw) : { login: 'user' };
-    const isTelegram = !!(window as any).Telegram?.WebApp?.initData;
-
-    if (!isTelegram && !token) {
-      alert("Please provide a GitHub Token in API Settings first!");
+    if (!isAuthenticated || !user) {
+      if (confirm("Please connect GitHub to deploy your game. Connect now?")) {
+        login();
+      }
       return;
     }
+
+    const token = GitHubOAuthClient.getToken();
+    const isTelegram = !!(window as any).Telegram?.WebApp?.initData;
 
     if (!htmlCode) return;
 
@@ -53,7 +56,7 @@ export function ChatMessageItem({ message, onRetry }: ChatMessageItemProps) {
     try {
       const deployer = new GitHubGameDeployerOAuth({
         token: token || "",
-        owner: githubUser.login,
+        owner: user.login,
         repo: `smol-game-${Date.now()}`,
         branch: 'main',
       });

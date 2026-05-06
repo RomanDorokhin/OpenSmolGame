@@ -12,7 +12,10 @@ import {
   ExternalLink,
   ShieldCheck,
   RotateCcw,
+  Github,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import type { ChatSession } from "@/types/chat";
 import type { APIProvider } from "@/lib/llm-api";
 
@@ -55,6 +58,7 @@ export function ChatSidebar({
   const [confirmClear, setConfirmClear] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const { user, isAuthenticated, login, logout } = useAuth();
 
   const handleClear = () => {
     if (confirmClear) {
@@ -168,19 +172,40 @@ export function ChatSidebar({
               </div>
 
               <div className="pt-2 border-t border-sidebar-border mt-4">
-                <label className="text-[11px] font-bold uppercase text-sidebar-foreground/50 ml-1">GitHub Token (PAT)</label>
-                <Input
-                  type="password"
-                  placeholder="ghp_xxxxxxxxxxxx"
-                  value={localStorage.getItem('github_access_token') || ''}
-                  onChange={(e) => {
-                    localStorage.setItem('github_access_token', e.target.value);
-                    // Force re-render if needed, but localStorage is fine for now
-                  }}
-                  className="bg-background mt-1"
-                />
+                <label className="text-[11px] font-bold uppercase text-sidebar-foreground/50 ml-1">GitHub Account</label>
+                {isAuthenticated && user ? (
+                  <div className="flex flex-col gap-2 mt-2 px-1">
+                    <div className="flex items-center gap-2">
+                      {user.avatar_url && (
+                        <img src={user.avatar_url} alt={user.login} className="w-6 h-6 rounded-full" />
+                      )}
+                      <span className="text-xs font-medium">{user.login}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={logout}
+                      className="w-full justify-start gap-2 text-[10px] h-8"
+                    >
+                      <LogOut size={12} />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-2 px-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={login}
+                      className="w-full justify-start gap-2 text-[10px] h-8 bg-black hover:bg-black/80 text-white"
+                    >
+                      <Github size={12} />
+                      Login with GitHub
+                    </Button>
+                  </div>
+                )}
                 <p className="text-[9px] text-sidebar-foreground/40 px-1 mt-1">
-                  Required for one-click deployment to GitHub Pages.
+                  Connect to GitHub for instant game deployment.
                 </p>
               </div>
 
