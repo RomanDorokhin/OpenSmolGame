@@ -11,6 +11,17 @@ import { generateStream } from "@/lib/llm-api";
 const STORAGE_KEY = "hybrid-chat-sessions-v2";
 const ACTIVE_SESSION_KEY = "hybrid-chat-active-session-v2";
 const SETTINGS_KEY = "hybrid-chat-settings";
+const USAGE_KEY = "hybrid-chat-usage";
+
+export interface UsageStats {
+  requests: number;
+  lastReset: number;
+}
+
+const DEFAULT_USAGE: UsageStats = {
+  requests: 0,
+  lastReset: Date.now(),
+};
 
 const SYSTEM_PROMPT_CONTENT = `Ты — Senior Game Architect и Protocol Designer. Твоя задача — помочь создать 2D игру. 
 Отвечай ВСЕГДА на русском языке.
@@ -116,11 +127,29 @@ function loadSettings(): ChatSettings {
   }
 }
 
+function loadUsage(): UsageStats {
+  try {
+    const raw = localStorage.getItem(USAGE_KEY);
+    if (!raw) return DEFAULT_USAGE;
+    const stats = JSON.parse(raw) as UsageStats;
+    
+    // Reset if more than 24h passed
+    if (Date.now() - stats.lastReset > 24 * 60 * 60 * 1000) {
+      return DEFAULT_USAGE;
+    }
+    return stats;
+  } catch {
+    return DEFAULT_USAGE;
+  }
+}
+
 export function useChat() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [settings, setSettings] = useState<ChatSettings>(loadSettings);
+  const [usage, setUsage] = useState<UsageStats>(loadUsage);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState("");
   const [modelProgress] = useState<ModelProgress>({
     progress: 100,
     text: "API Ready",
@@ -161,10 +190,23 @@ export function useChat() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
 
+  // Save usage
+  useEffect(() => {
+    localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+  }, [usage]);
+
   const currentSession = sessions.find((s) => s.id === activeSessionId) || sessions[0] || createDefaultSession();
 
   const updateSettings = useCallback((newSettings: Partial<ChatSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
+  }, []);
+
+  const incrementUsage = useCallback(() => {
+    setUsage((prev) => ({
+      ...prev,
+      requests: prev.requests + 1,
+      lastReset: prev.lastReset,
+    }));
   }, []);
 
   const sendMessage = useCallback(
@@ -216,6 +258,8 @@ export function useChat() {
       });
 
       setIsGenerating(true);
+      setGenerationStep("Connecting to provider...");
+      incrementUsage();
       abortControllerRef.current = new AbortController();
 
       try {
@@ -237,6 +281,7 @@ export function useChat() {
         );
 
         let fullContent = "";
+        setGenerationStep("Streaming response...");
         for await (const chunk of stream) {
           fullContent += chunk;
           setSessions((prev) =>
@@ -299,6 +344,7 @@ export function useChat() {
         }
       } finally {
         setIsGenerating(false);
+        setGenerationStep("");
         abortControllerRef.current = null;
       }
     },
@@ -374,6 +420,9 @@ export function useChat() {
     deleteSession,
     clearAllSessions,
     retryLastMessage,
+    usage,
+    generationStep,
+    setGenerationStep,
     initModel: () => {}, // No-op in 2.0
   };
 }

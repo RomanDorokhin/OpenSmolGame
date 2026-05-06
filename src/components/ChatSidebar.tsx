@@ -30,6 +30,10 @@ interface ChatSidebarProps {
     model: string;
   };
   onUpdateSettings: (settings: any) => void;
+  usage: {
+    requests: number;
+    lastReset: number;
+  };
 }
 
 export function ChatSidebar({
@@ -43,6 +47,7 @@ export function ChatSidebar({
   onClose,
   settings,
   onUpdateSettings,
+  usage,
 }: ChatSidebarProps) {
   const [confirmClear, setConfirmClear] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -235,9 +240,12 @@ export function ChatSidebar({
           </div>
 
           <div className="px-3 py-2 bg-sidebar-accent/30 rounded-lg border border-sidebar-border/50">
-            <div className="flex items-center gap-2 text-[11px] text-sidebar-foreground/60">
-              <div className={`w-1.5 h-1.5 rounded-full ${settings.apiKey ? 'bg-green-500' : 'bg-yellow-500'}`} />
-              <span className="font-medium truncate">{settings.provider}: {settings.model}</span>
+            <div className="flex items-center justify-between gap-2 text-[11px] text-sidebar-foreground/60">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-1.5 h-1.5 rounded-full ${settings.apiKey ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                <span className="font-medium truncate">{settings.provider}: {settings.model}</span>
+              </div>
+              <span className="shrink-0 opacity-80">{usage.requests}/50</span>
             </div>
           </div>
         </div>

@@ -22,6 +22,8 @@ export default function Home() {
     deleteSession,
     clearAllSessions,
     retryLastMessage,
+    usage,
+    generationStep,
   } = useChat();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,8 +53,8 @@ export default function Home() {
         onCreateNewChat={createNewChat}
         onDeleteSession={deleteSession}
         onClearAll={clearAllSessions}
-        settings={settings}
         onUpdateSettings={updateSettings}
+        usage={usage}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -95,11 +97,22 @@ export default function Home() {
                   <h2 className="text-3xl font-black text-foreground mb-3 tracking-tight">
                     Senior Game Architect
                   </h2>
-                  <p className="text-muted-foreground text-center max-w-md mb-10 leading-relaxed">
+                  <p className="text-muted-foreground text-center max-w-md mb-6 leading-relaxed">
                     High-performance AI for game coding, protocol design, and architecture.
                     <br />
-                    <span className="text-xs opacity-70 mt-2 block italic">Bring your own key, keep your own data.</span>
+                    <span className="text-xs opacity-70 mt-2 block italic text-primary font-medium">Bring your own key, keep your own data.</span>
                   </p>
+                  
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-8 max-w-lg w-full text-center backdrop-blur-sm shadow-sm">
+                    <p className="text-sm text-foreground/90 leading-relaxed">
+                      Чтобы игра получилась действительно крутой, нам нужно пройти через <span className="text-primary font-bold">7 шагов проектирования</span>. 
+                      Пожалуйста, отвечай на мои вопросы — это поможет мне создать именно то, что ты хочешь. 
+                      <br /><br />
+                      <span className="text-xs opacity-70 italic">
+                        Если не знаешь, что ответить, просто пиши: <span className="font-semibold">"Я не знаю, реши сам"</span>, и я возьму это на себя! 🎮
+                      </span>
+                    </p>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                     {[
                       "Придумай концепт RPG в стиле киберпанк",
@@ -130,6 +143,12 @@ export default function Home() {
                       }
                     />
                   ))}
+                  {isGenerating && generationStep && (
+                    <div className="flex items-center gap-3 px-4 py-2 ml-4 text-[10px] text-muted-foreground animate-pulse">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+                      <span>{generationStep}</span>
+                    </div>
+                  )}
                   <div ref={bottomRef} />
                 </div>
               )}
