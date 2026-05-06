@@ -383,6 +383,16 @@ export function useChat() {
     setActiveSessionId(session.id);
   }, []);
 
+  const factoryReset = useCallback(() => {
+    if (confirm("Вы уверены, что хотите полностью сбросить кэш? Это удалит все чаты и настройки API.")) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+      localStorage.removeItem(USAGE_KEY);
+      window.location.reload();
+    }
+  }, []);
+
   const retryLastMessage = useCallback(() => {
     const session = sessions.find((s) => s.id === activeSessionId);
     if (!session || isGenerating) return;
@@ -419,6 +429,7 @@ export function useChat() {
     switchSession,
     deleteSession,
     clearAllSessions,
+    factoryReset,
     retryLastMessage,
     usage,
     generationStep,
