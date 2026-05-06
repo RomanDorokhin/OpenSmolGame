@@ -26,6 +26,7 @@ export class SmolGameAPI {
     try {
       const tg = (window as any).Telegram?.WebApp;
       if (tg?.initData) {
+        console.log("Found initData in window.Telegram.WebApp");
         return tg.initData;
       }
     } catch (e) {}
@@ -33,6 +34,7 @@ export class SmolGameAPI {
     // 1. Try URL fragment (hash) - common in Telegram
     const hash = window.location.hash || '';
     if (hash.includes('tgWebAppData=')) {
+      console.log("Found initData in URL Hash");
       const match = hash.match(/tgWebAppData=([^&]+)/);
       if (match) {
         const data = decodeURIComponent(match[1]);
@@ -44,6 +46,7 @@ export class SmolGameAPI {
     // 2. Try URL query params
     const search = window.location.search || '';
     if (search.includes('tgWebAppData=')) {
+      console.log("Found initData in URL Search");
       const params = new URLSearchParams(search);
       const data = params.get('tgWebAppData');
       if (data) {
@@ -54,7 +57,9 @@ export class SmolGameAPI {
 
     // 3. Try sessionStorage (cache)
     try {
-      return sessionStorage.getItem(INIT_DATA_SS_KEY) || '';
+      const stored = sessionStorage.getItem(INIT_DATA_SS_KEY);
+      if (stored) console.log("Found initData in sessionStorage");
+      return stored || '';
     } catch (e) {
       return '';
     }
