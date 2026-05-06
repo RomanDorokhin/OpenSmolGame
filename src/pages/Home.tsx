@@ -134,10 +134,10 @@ export default function Home() {
           <div className="flex items-center gap-2">
             {isAuthenticated && user && (
               <div className="hidden sm:flex items-center gap-2 mr-2">
-                {user.avatar_url && (
-                  <img src={user.avatar_url} alt={user.login} className="w-6 h-6 rounded-full border border-primary/20" />
+                {user.photo_url && (
+                  <img src={user.photo_url} alt={user.githubUsername || user.username} className="w-6 h-6 rounded-full border border-primary/20" />
                 )}
-                <span className="text-xs font-medium text-muted-foreground">{user.login}</span>
+                <span className="text-xs font-medium text-muted-foreground">{user.githubUsername || user.username}</span>
               </div>
             )}
             

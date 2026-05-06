@@ -176,10 +176,10 @@ export function ChatSidebar({
                 {isAuthenticated && user ? (
                   <div className="flex flex-col gap-2 mt-2 px-1">
                     <div className="flex items-center gap-2">
-                      {user.avatar_url && (
-                        <img src={user.avatar_url} alt={user.login} className="w-6 h-6 rounded-full" />
+                      {user.photo_url && (
+                        <img src={user.photo_url} alt={user.githubUsername || user.username} className="w-6 h-6 rounded-full" />
                       )}
-                      <span className="text-xs font-medium">{user.login}</span>
+                      <span className="text-xs font-medium">{user.githubUsername || user.username}</span>
                     </div>
                     <Button
                       variant="outline"

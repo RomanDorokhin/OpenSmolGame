@@ -21,7 +21,7 @@ export function ChatMessageItem({ message, onRetry }: ChatMessageItemProps) {
   const [deployResult, setDeployResult] = useState<{ gameUrl: string; repoUrl: string } | null>(null);
   const isUser = message.role === "user";
   const isStreaming = message.isStreaming;
-  const { user, isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login } = useAuth();
 
   const htmlCode = message.content.match(/```html\s*([\s\S]*?)```/)?.[1] || 
                    (message.content.includes('<html>') ? message.content : null);
