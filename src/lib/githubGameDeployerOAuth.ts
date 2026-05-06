@@ -5,6 +5,8 @@
 
 import { GitHubOAuthClient } from './githubOAuthClient';
 
+const SMOLGAME_API_URL = 'https://smolgame.dorokhin731.workers.dev';
+
 export interface DeploymentConfig {
   token: string; // OAuth access token
   owner: string; // GitHub username
@@ -290,6 +292,70 @@ Author: ${metadata.author}
   ): void {
     if (onProgress) {
       onProgress(message, progress);
+    }
+  }
+
+  /**
+   * Deploy via SmolGame backend (Official Integration)
+   */
+  async deployViaSmolGameBackend(
+    htmlCode: string,
+    metadata: GameMetadata,
+    onProgress?: (message: string, progress: number) => void
+  ): Promise<DeploymentResult> {
+    const startTime = Date.now();
+    this.progress('Connecting to SmolGame Backend...', 20, onProgress);
+
+    try {
+      // Get Telegram initData
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData || "";
+
+      if (!initData) {
+        throw new Error('Telegram WebApp context not found. Use GitHub PAT instead.');
+      }
+
+      this.progress('Preparing game for publication...', 50, onProgress);
+
+      const response = await fetch(`${SMOLGAME_API_URL}/api/github/publish-game`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': initData,
+        },
+        body: JSON.stringify({
+          gameTitle: metadata.title,
+          gameDescription: metadata.description,
+          files: [
+            { path: 'index.html', content: htmlCode }
+          ]
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.message || 'Backend deployment failed');
+      }
+
+      this.progress('Game is live!', 100, onProgress);
+
+      return {
+        success: true,
+        gameUrl: result.pagesUrl,
+        repositoryUrl: `https://github.com/${result.repo}`,
+        message: 'Published successfully via SmolGame!',
+        deploymentTime: Math.round((Date.now() - startTime) / 1000),
+      };
+    } catch (error) {
+      console.error('Backend deploy error:', error);
+      return {
+        success: false,
+        gameUrl: '',
+        repositoryUrl: '',
+        message: error instanceof Error ? error.message : 'Backend deploy failed',
+        deploymentTime: Math.round((Date.now() - startTime) / 1000),
+      };
     }
   }
 }
